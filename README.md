@@ -1,1 +1,3 @@
 # ising
+
+the old school

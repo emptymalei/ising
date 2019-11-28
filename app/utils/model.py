@@ -34,7 +34,7 @@ class Ising():
         coord_state = self.state[coord]
         return 2 * coord_state * np.sum(neighbour_states)
 
-    def evolve(self, beta):
+    def evolve_one(self, beta):
         """
         evolve one step forward of system
         """
@@ -45,9 +45,17 @@ class Ising():
             )
         current_state_at_coord = self.state[random_coord]
         delta_e = self.delta_energy(random_coord)
-        if delta_e < 0:
-            new_state_at_coord = -current_state_at_coord
-            self.state[random_coord] = new_state_at_coord
+        if (delta_e < 0) or (np.random.rand() < np.exp(-delta_e/beta)):
+            new_state_at_coord = -1 * current_state_at_coord
+        else:
+            new_state_at_coord = current_state_at_coord
+
+        self.state[random_coord] = new_state_at_coord
+
+    def evolve(self, beta, steps=None):
+
+        for i in range(steps):
+            self.evolve_one(beta)
 
 
 
