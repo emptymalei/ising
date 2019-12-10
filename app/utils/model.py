@@ -5,6 +5,7 @@ class Ising():
         self.width = params.get('width') or 20
         self.height = params.get('height') or 20
         self.states = params.get('states') or [-1,1]
+        self.max_steps = params.get('max_steps') or 100000
 
 
     def initialize(self, state=None):
@@ -30,6 +31,14 @@ class Ising():
         return neighbours
 
     def delta_energy(self, coord):
+        """
+        delta_energy calculates the energy different between the new state and the current state
+
+        :param coord: coordnates
+        :type coord: [list, tuple]
+        :return: energy change
+        :rtype: [float]
+        """
         neighbour_states = self._neighbours(coord)
         coord_state = self.state[coord]
         return 2 * coord_state * np.sum(neighbour_states)
@@ -53,6 +62,14 @@ class Ising():
         self.state[random_coord] = new_state_at_coord
 
     def evolve(self, beta, steps=None):
+        """
+        evolve evolves the system step by step
+
+        :param beta: beta from statistical mechanics
+        :type beta: float
+        :param steps: number of steps to run, defaults to None
+        :type steps: int, optional
+        """
 
         for i in range(steps):
             self.evolve_one(beta)
