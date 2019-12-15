@@ -1,4 +1,8 @@
+import logging
 import numpy as np
+
+logger = logging.getLogger('model')
+logger.setLevel(logging.DEBUG)
 
 class Ising():
     def __init__(self, params):
@@ -6,6 +10,7 @@ class Ising():
         self.height = params.get('height') or 20
         self.states = params.get('states') or [-1,1]
         self.max_steps = params.get('max_steps') or 100000
+        self.observables = params.get('observables') or []
 
 
     def initialize(self, state=None):
@@ -26,7 +31,9 @@ class Ising():
             (i, (j+1)%self.width)
         )
 
-        neighbours = self.state[neighbour_coords]
+        neighbours = []
+        for i in neighbour_coords:
+            neighbours.append(self.state[i])
 
         return neighbours
 
@@ -61,7 +68,7 @@ class Ising():
 
         self.state[random_coord] = new_state_at_coord
 
-    def evolve(self, beta, steps=None):
+    def evolve(self, beta, steps=None, observe_counts=None):
         """
         evolve evolves the system step by step
 
@@ -70,9 +77,71 @@ class Ising():
         :param steps: number of steps to run, defaults to None
         :type steps: int, optional
         """
+        if steps is None:
+            steps = 100
+        if observe_counts is None:
+            observe_counts = 10
 
+        observe_interval = int(steps/observe_counts)
+        if observe_interval < 1:
+            observe_interval = 1
+
+        logger.debug('using observe_interval', observe_interval)
+        print('using observe_interval', observe_interval)
+
+        step = 0
+        observe_count = 0
         for i in range(steps):
             self.evolve_one(beta)
+            if observe_count%observe_interval == 0:
+                self.observables.append(
+                    self.observe(step)
+                )
+            if step > steps:
+                break
+            step += 1
+
+    def observe(self, step):
+
+        res = {
+            "step": step,
+            "energy": self._observe__energy(),
+            "state": self.state
+        }
+
+        return res
+
+    def _observe__energy(self):
+        """
+        _observe__energy calcualates the observables of the grid
+        """
+
+        total_energy = 0
+        for i in range(self.height):
+            for j in range(self.width):
+                mag_i_j = self.state[(i,j)]
+
+                ip1 = (i + 1)%self.height
+                im1 = (i - 1)%self.height
+                jp1 = (j + 1)%self.width
+                jm1 = (j - 1)%self.width
+
+                mag_neighbours = self.state[(
+                        ip1, j
+                    )] + self.state[(
+                        i, jp1
+                    )] + self.state[(
+                        im1, j
+                        )] + self.state[(
+                            i,jp1
+                            )]
+
+                total_energy += -mag_i_j * mag_neighbours
+
+            # the energy calculation has been repeated for four times
+            total_energy = total_energy / 4
+
+        return total_energy
 
 
 
