@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from itertools import product as _product
 
 logger = logging.getLogger('model')
 logger.setLevel(logging.DEBUG)
@@ -12,6 +13,40 @@ class Ising():
         self.max_steps = params.get('max_steps') or 100000
         self.observables = params.get('observables') or []
 
+
+    def distribution(self):
+        """
+        distribution calculates the number of microstates for each energy level.
+        """
+
+        list_of_states_at_row = [self.states] * self.height
+        rows = list(
+            _product(*list_of_states_at_row)
+        )
+
+        list_of_rows = [rows] * self.width
+
+        all_states = list(
+            _product(*list_of_rows)
+        )
+
+        all_states_count = len(all_states)
+
+        distribution = []
+        for state_i in all_states:
+            self.state = state_i
+            ene = self._observe__energy(state_i)
+            distribution.append(
+                {
+                    'energy': ene,
+                    'state': state_i
+                }
+            )
+
+        self.dist = {
+            'total_states': all_states_count,
+            'states': distribution
+        }
 
     def initialize(self, state=None):
         if state is None:
@@ -111,28 +146,32 @@ class Ising():
 
         return res
 
-    def _observe__energy(self):
+    def _observe__energy(self, state=None):
         """
         _observe__energy calcualates the observables of the grid
         """
+        if state is None:
+            state = self.state
+        if isinstance(state, (list, tuple)):
+            state = np.asarray(state)
 
         total_energy = 0
         for i in range(self.height):
             for j in range(self.width):
-                mag_i_j = self.state[(i,j)]
+                mag_i_j = state[(i,j)]
 
                 ip1 = (i + 1)%self.height
                 im1 = (i - 1)%self.height
                 jp1 = (j + 1)%self.width
                 jm1 = (j - 1)%self.width
 
-                mag_neighbours = self.state[(
+                mag_neighbours =  state[(
                         ip1, j
-                    )] + self.state[(
+                    )] + state[(
                         i, jp1
-                    )] + self.state[(
+                    )] +  state[(
                         im1, j
-                        )] + self.state[(
+                        )] +  state[(
                             i,jp1
                             )]
 
