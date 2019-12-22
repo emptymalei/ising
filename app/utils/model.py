@@ -35,11 +35,14 @@ class Ising():
         distribution = []
         for state_i in all_states:
             self.state = state_i
-            ene = self._observe__energy(state_i)
+            ene = self._observe__energy(state_i, dist=True)
+            single_particle_state_ct = self._single_particle_state_count()
             distribution.append(
                 {
-                    'energy': ene,
-                    'state': state_i
+                    'energy': ene.get('energy'),
+                    'state': state_i,
+                    'dist': ene.get('dist'),
+                    'spin_dist': single_particle_state_ct
                 }
             )
 
@@ -47,6 +50,20 @@ class Ising():
             'total_states': all_states_count,
             'states': distribution
         }
+
+    def _single_particle_state_count(self, state=None):
+
+        if state is None:
+            state = self.state
+
+        flatten_state = [s for row in state for s in row]
+
+        res = {}
+
+        for st in self.states:
+            res[st] = flatten_state.count(st)
+
+        return res
 
     def initialize(self, state=None):
         if state is None:
@@ -138,24 +155,31 @@ class Ising():
 
     def observe(self, step):
 
+        obser_energy = self._observe__energy()
+
         res = {
             "step": step,
-            "energy": self._observe__energy(),
+            "energy": obser_energy.get('energy'),
             "state": self.state
         }
 
         return res
 
-    def _observe__energy(self, state=None):
+    def _observe__energy(self, state=None, dist=None):
         """
         _observe__energy calcualates the observables of the grid
         """
         if state is None:
             state = self.state
+        if dist is None:
+            dist = False
         if isinstance(state, (list, tuple)):
             state = np.asarray(state)
 
+        res = {}
+
         total_energy = 0
+        single_partile_energy_dist = {}
         for i in range(self.height):
             for j in range(self.width):
                 mag_i_j = state[(i,j)]
@@ -175,12 +199,22 @@ class Ising():
                             i,jp1
                             )]
 
-                total_energy += -mag_i_j * mag_neighbours
+                e_ij = -mag_i_j * mag_neighbours
+                total_energy += e_ij
+                if dist:
+                    e_ij_dist = single_partile_energy_dist.get(e_ij)
+                    if e_ij_dist:
+                        single_partile_energy_dist[e_ij] += e_ij_dist
+                    else:
+                        single_partile_energy_dist[e_ij] = 1
 
             # the energy calculation has been repeated for four times
             total_energy = total_energy / 4
+            res['energy'] = total_energy
+            if dist:
+                res['dist'] = single_partile_energy_dist
 
-        return total_energy
+        return res
 
 
 
