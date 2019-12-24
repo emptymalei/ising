@@ -19,6 +19,8 @@ class Ising():
         distribution calculates the number of microstates for each energy level.
         """
 
+
+        # generate possible combinations out of the states
         list_of_states_at_row = [self.states] * self.height
         rows = list(
             _product(*list_of_states_at_row)
@@ -36,7 +38,7 @@ class Ising():
         for state_i in all_states:
             self.state = state_i
             ene = self._observe__energy(state_i, dist=True)
-            single_particle_state_ct = self._single_particle_state_count()
+            single_particle_state_ct = self._single_particle_state_count(state_i)
             distribution.append(
                 {
                     'energy': ene.get('energy'),
@@ -196,23 +198,20 @@ class Ising():
                     )] +  state[(
                         im1, j
                         )] +  state[(
-                            i,jp1
+                            i,jm1
                             )]
 
                 e_ij = -mag_i_j * mag_neighbours
                 total_energy += e_ij
                 if dist:
-                    e_ij_dist = single_partile_energy_dist.get(e_ij)
-                    if e_ij_dist:
-                        single_partile_energy_dist[e_ij] += e_ij_dist
-                    else:
-                        single_partile_energy_dist[e_ij] = 1
+                    e_ij_dist = single_partile_energy_dist.get(e_ij,0)
+                    single_partile_energy_dist[e_ij] = e_ij_dist + 1
 
-            # the energy calculation has been repeated for four times
-            total_energy = total_energy / 4
-            res['energy'] = total_energy
-            if dist:
-                res['dist'] = single_partile_energy_dist
+        # the energy calculation has been repeated for four times
+        total_energy = total_energy / 4
+        res['energy'] = total_energy
+        if dist:
+            res['dist'] = single_partile_energy_dist
 
         return res
 
@@ -220,11 +219,15 @@ class Ising():
 
 if __name__ == "__main__":
     ising_param = {
-        'width': 20,
-        'height': 20
+        'width': 2,
+        'height': 2
     }
 
     ising = Ising(ising_param)
+
+    ising.distribution()
+    print(ising.dist)
+
     ising.initialize()
 
     print(
